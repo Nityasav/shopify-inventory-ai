@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/order-confirmed",
+      "methods": ["POST"],
+      "dest": "server.js"
+    },
+    {
+      "src": "/api/chat",
+      "methods": ["POST"],
+      "dest": "server.js"
+    },
+    {
+      "src": "/api/shopify-webhook",
+      "methods": ["POST"],
+      "dest": "server.js"
+    },
+    {
+      "src": "/api/test-order/(.*)",
+      "methods": ["GET"],
+      "dest": "server.js"
+    },
+    {
+      "src": "/",
+      "dest": "public/widget.html"
+    },
+    {
+      "src": "/(.+)",
+      "dest": "public/$1"
+    }
+  ]
+} 

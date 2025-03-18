@@ -1,0 +1,830 @@
+<div id="ai-chat-widget" class="chat-widget">
+  <div id="chat-container" class="chat-container">
+    <div class="chat-header">
+      <h3>Eclipse Tag Assistant</h3>
+      <button id="close-chat" class="close-button">×</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input-container">
+      <input type="text" id="chat-input" placeholder="Ask about our products...">
+      <button id="send-message">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Add a style for the close button */
+  .close-button {
+    position: absolute;
+    top: 13px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, sans-serif;
+  }
+  
+  .close-button:hover {
+    color: #cccccc;
+  }
+
+  .chat-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    font-family: Georgia, serif;
+  }
+
+  .chat-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    background: #091D26;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+
+  .chat-container.expanded {
+    width: 350px;
+    height: 450px;
+    border-radius: 15px;
+    cursor: default;
+  }
+
+  .chat-header {
+    background: #0c2632;
+    padding: 15px;
+    color: white;
+    font-size: 14px;
+    display: none;
+  }
+
+  .chat-container.expanded .chat-header {
+    display: block;
+  }
+
+  .chat-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: white;
+    font-family: Georgia, serif;
+  }
+
+  .chat-messages {
+    display: none;
+    height: calc(100% - 120px);
+    overflow-y: auto;
+    padding: 15px;
+    background: #091D26;
+    color: white;
+  }
+
+  .chat-container.expanded .chat-messages {
+    display: block;
+  }
+
+  .chat-messages div {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    max-width: 85%;
+    word-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: Georgia, serif;
+  }
+
+  .chat-messages div[data-user="true"] {
+    background: #1e3d4a;
+    margin-left: auto;
+  }
+
+  .chat-messages div[data-user="false"] {
+    background: #132f3a;
+    margin-right: auto;
+  }
+
+  .chat-input-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    display: none;
+    background: #0c2632;
+  }
+
+  .chat-container.expanded .chat-input-container {
+    display: flex;
+    gap: 10px;
+  }
+
+  #chat-input {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 20px;
+    background: #132f3a;
+    color: white;
+    outline: none;
+    font-size: 14px;
+    height: 40px;
+    font-family: Georgia, serif;
+  }
+
+  #chat-input::placeholder {
+    color: #6c8a95;
+    font-size: 14px;
+    font-family: Georgia, serif;
+  }
+
+  #send-message {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: #1e3d4a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.2s ease;
+  }
+
+  #send-message:hover {
+    background: #2a4f5f;
+  }
+
+  /* Initial state - show chat icon */
+  .chat-container::before {
+    content: '💬';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    color: white;
+  }
+
+  .chat-container.expanded::before {
+    display: none;
+  }
+
+  /* Scrollbar styling */
+  .chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .chat-messages::-webkit-scrollbar-track {
+    background: #091D26;
+  }
+
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: #1e3d4a;
+    border-radius: 3px;
+  }
+  
+  /* Typing indicator */
+  .typing-indicator {
+    background: #132f3a;
+    margin-right: auto;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    max-width: 80%;
+    font-size: 14px;
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+
+  /* Connection status indicator */
+  .connection-status {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: none;
+  }
+
+  .chat-container.expanded .connection-status {
+    display: block;
+  }
+
+  .connection-status.online {
+    background-color: #4CAF50;
+  }
+
+  .connection-status.offline {
+    background-color: #F44336;
+  }
+
+  .connection-status.connecting {
+    background-color: #FFC107;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Basic DOM elements
+    const chatContainer = document.getElementById('chat-container');
+    const chatInput = document.getElementById('chat-input');
+    const sendButton = document.getElementById('send-message');
+    const chatMessages = document.getElementById('chat-messages');
+    const closeButton = document.getElementById('close-chat');
+    
+    // Debug logging with timestamps
+    const debugLog = (msg) => console.log(`[${new Date().toISOString()}] [Chat Debug] ${msg}`);
+    const errorLog = (msg) => console.error(`[${new Date().toISOString()}] [Chat Error] ${msg}`);
+    
+    // Track if chat has been opened before
+    let chatInitialized = false;
+    let initializingChat = false;
+    
+    // Simple conversation history
+    const conversationHistory = [];
+    
+    // Track if a message is being processed
+    let isProcessing = false;
+    
+    // Server URL configuration - we'll detect the best URL to use
+    let apiBaseUrl = '';
+    
+    // Try to get cached API URL from localStorage to speed up initialization
+    try {
+      const cachedUrl = localStorage.getItem('eclipseTag_apiUrl');
+      if (cachedUrl) {
+        debugLog(`Using cached API URL: ${cachedUrl}`);
+        apiBaseUrl = cachedUrl;
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+    
+    // Toggle chat open/closed
+    function toggleChat() {
+      const isExpanded = chatContainer.classList.contains('expanded');
+      
+      if (isExpanded) {
+        // Close the chat
+        chatContainer.classList.remove('expanded');
+      } else {
+        // Open the chat
+        chatContainer.classList.add('expanded');
+        chatInput.focus();
+        
+        // Initialize the chat if it's the first time opening
+        if (!chatInitialized && !initializingChat) {
+          initChat();
+        }
+      }
+    }
+    
+    // Add click event to chat container to open it
+    chatContainer.addEventListener('click', function(e) {
+      // Only toggle if clicking on the container itself, not on child elements when expanded
+      if (!chatContainer.classList.contains('expanded') || e.target === chatContainer) {
+        toggleChat();
+      }
+    });
+    
+    // Add click event to close button
+    closeButton.addEventListener('click', function(e) {
+      e.stopPropagation(); // Prevent the click from triggering the container click
+      toggleChat();
+    });
+    
+    // Warm welcome message
+    function showWelcomeMessage() {
+      const welcomeMessage = "👋 Welcome to Eclipse Tag! I'm your personal assistant for all things related to our reflective safety tags. I can answer questions about our products, pricing, shipping, or anything else you're curious about. How can I help you today?";
+      addAssistantMessage(welcomeMessage);
+    }
+    
+    // Determine the correct API base URL - optimized to be faster
+    function determineApiBaseUrl() {
+      // If we already have a working URL, prioritize it
+      if (apiBaseUrl) {
+        debugLog('Using existing API URL');
+        return [apiBaseUrl];
+      }
+      
+      // First try the current origin (most likely to work)
+      const currentOrigin = window.location.origin;
+      
+      const portOptions = ['', ':3000', ':3001', ':3002'];
+      const hostOptions = [
+        currentOrigin,       // Current host (relative URL) - try first
+        '/api',              // Relative path - try second
+        'http://localhost',  // For local development - try third
+        'http://127.0.0.1'   // Alternative local - try last
+      ];
+      
+      debugLog(`Current origin: ${currentOrigin}`);
+      
+      // Create ordered list of URLs to try (prioritizing most likely ones)
+      const urls = [currentOrigin]; // Start with current origin (most likely)
+      
+      // Then add relative path
+      urls.push('/api');
+      
+      // Then add development options
+      hostOptions.slice(2).forEach(host => {
+        portOptions.forEach(port => {
+          urls.push(`${host}${port}`);
+        });
+      });
+      
+      return urls;
+    }
+    
+    // Try to find a working API endpoint by testing each possibility - optimized version
+    async function findWorkingApiEndpoint() {
+      // If we already have a cached URL, verify it works
+      if (apiBaseUrl) {
+        try {
+          const testUrl = `${apiBaseUrl}/api/check-openai`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          
+          const response = await fetch(testUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            debugLog(`Cached API endpoint verified: ${apiBaseUrl}`);
+            // Save to localStorage for future use
+            try {
+              localStorage.setItem('eclipseTag_apiUrl', apiBaseUrl);
+            } catch (e) {
+              // Ignore localStorage errors
+            }
+            return apiBaseUrl;
+          }
+        } catch (error) {
+          // If cached URL fails, continue to try others
+          debugLog(`Cached endpoint failed: ${error.message}`);
+        }
+      }
+      
+      const possibleBaseUrls = determineApiBaseUrl();
+      debugLog(`Testing ${possibleBaseUrls.length} possible API endpoints...`);
+      
+      // Try all endpoints with a faster timeout
+      const promises = possibleBaseUrls.map(async (baseUrl) => {
+        try {
+          debugLog(`Testing API endpoint: ${baseUrl}`);
+          const testUrl = `${baseUrl}/api/check-openai`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500); // Faster 1.5s timeout
+          
+          const response = await fetch(testUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            debugLog(`Found working API endpoint: ${baseUrl}`);
+            return { baseUrl, works: true };
+          }
+          return { baseUrl, works: false };
+        } catch (error) {
+          return { baseUrl, works: false };
+        }
+      });
+      
+      // Wait for first successful endpoint or all to fail
+      const results = await Promise.all(promises);
+      const working = results.find(r => r.works);
+      
+      if (working) {
+        // Cache the working URL for future use
+        try {
+          localStorage.setItem('eclipseTag_apiUrl', working.baseUrl);
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+        return working.baseUrl;
+      }
+      
+      // Default to relative path if no working URL found
+      debugLog(`No working endpoint found, using relative path '/api'`);
+      return '/api';
+    }
+    
+    // Add a user message to the chat
+    function addUserMessage(message) {
+      const messageDiv = document.createElement('div');
+      messageDiv.textContent = message;
+      messageDiv.setAttribute('data-user', 'true');
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      
+      // Add to conversation history
+      conversationHistory.push({
+        role: "user",
+        content: message
+      });
+    }
+    
+    // Add an assistant message to the chat
+    function addAssistantMessage(message) {
+      const messageDiv = document.createElement('div');
+      messageDiv.textContent = message;
+      messageDiv.setAttribute('data-user', 'false');
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      
+      // Add to conversation history
+      conversationHistory.push({
+        role: "assistant",
+        content: message
+      });
+    }
+    
+    // Show typing indicator
+    function showTypingIndicator() {
+      const indicator = document.createElement('div');
+      indicator.textContent = "Typing...";
+      indicator.className = "typing-indicator";
+      indicator.id = 'typing-indicator';
+      chatMessages.appendChild(indicator);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Remove typing indicator
+    function removeTypingIndicator() {
+      const indicator = document.getElementById('typing-indicator');
+      if (indicator) indicator.remove();
+    }
+    
+    // Check if server is running and OpenAI is connected
+    async function checkConnection() {
+      if (!apiBaseUrl) {
+        errorLog('Cannot check connection: API base URL not determined yet');
+        return false;
+      }
+      
+      try {
+        debugLog(`Checking OpenAI connection at ${apiBaseUrl}/api/check-openai`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(`${apiBaseUrl}/api/check-openai`, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        
+        if (data.success) {
+          debugLog('OpenAI connection successful');
+          return true;
+        } else {
+          errorLog(`OpenAI connection failed: ${data.message}`);
+          return false;
+        }
+      } catch (error) {
+        errorLog(`Connection check failed: ${error.message}`);
+        return false;
+      }
+    }
+    
+    // Send message to server
+    async function sendMessage() {
+      // Get message text and check if it's valid
+      const userMessage = chatInput.value.trim();
+      if (!userMessage || isProcessing) return;
+      
+      // Clear input and add user message
+      chatInput.value = '';
+      addUserMessage(userMessage);
+      
+      // Check for admin inventory commands
+      const adminPassword = "nnypeclipse123$";
+      if (userMessage.startsWith('/')) {
+        const parts = userMessage.split(' ');
+        const command = parts[0].toLowerCase();
+        
+        // Check if this is an inventory command with the correct password
+        if (parts.length >= 3 && parts[1] === adminPassword) {
+          const amount = parseInt(parts[2], 10);
+          
+          // Only process if the amount is a valid number
+          if (!isNaN(amount)) {
+            let response = "";
+            
+            try {
+              if (command === '/set') {
+                await updateInventory('set', amount);
+                response = `✅ Inventory successfully set to ${amount} units.`;
+              } else if (command === '/add') {
+                const newAmount = await updateInventory('add', amount);
+                response = `✅ Added ${amount} units to inventory. New total: ${newAmount} units.`;
+              } else if (command === '/subtract') {
+                const newAmount = await updateInventory('subtract', amount);
+                response = `✅ Removed ${amount} units from inventory. New total: ${newAmount} units.`;
+              } else {
+                response = "❌ Unknown command. Available commands: /set, /add, /subtract";
+              }
+            } catch (error) {
+              response = `❌ Error updating inventory: ${error.message}`;
+            }
+            
+            // Show the response without sending to AI
+            addAssistantMessage(response);
+            return;
+          }
+        } else if (userMessage.startsWith('/inventory')) {
+          // Special case to check inventory without password
+          try {
+            const inventoryData = await checkInventory();
+            addAssistantMessage(`Current inventory: ${inventoryData.count} units`);
+            return;
+          } catch (error) {
+            addAssistantMessage(`❌ Error checking inventory: ${error.message}`);
+            return;
+          }
+        } else if (userMessage.startsWith('/orders') && parts.length >= 2 && parts[1] === adminPassword) {
+          // Command to check recent orders - requires password
+          try {
+            const ordersData = await checkRecentOrders(adminPassword);
+            
+            if (ordersData.count === 0) {
+              addAssistantMessage("No recent orders found.");
+            } else {
+              let response = `📦 Recent orders (last ${ordersData.count}):\n\n`;
+              
+              ordersData.recentOrders.forEach((order, index) => {
+                const date = new Date(order.date).toLocaleString();
+                response += `${index + 1}. Order #${order.id}: $${order.amount} (${order.quantity} tags) - ${date}\n`;
+              });
+              
+              addAssistantMessage(response);
+            }
+            return;
+          } catch (error) {
+            addAssistantMessage(`❌ Error checking recent orders: ${error.message}`);
+            return;
+          }
+        } else if (userMessage.startsWith('/help')) {
+          // Help command to show available commands
+          const helpMessage = `
+Available commands:
+- /inventory - Check current inventory
+- /orders nnypeclipse123$ - View recent orders (requires password)
+- /set nnypeclipse123$ [number] - Set inventory to specific amount
+- /add nnypeclipse123$ [number] - Add to inventory
+- /subtract nnypeclipse123$ [number] - Remove from inventory
+- /help - Show this help message
+`;
+          addAssistantMessage(helpMessage);
+          return;
+        }
+      }
+      
+      // If not an admin command, proceed with normal message sending
+      // Check if we're still initializing
+      if (initializingChat && !apiBaseUrl) {
+        // Wait a moment and try to initialize if needed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (!apiBaseUrl) {
+          // Try to find an endpoint one more time
+          apiBaseUrl = await findWorkingApiEndpoint();
+        }
+      }
+      
+      // Check if we have a valid API URL
+      if (!apiBaseUrl) {
+        errorLog('No valid API URL found');
+        // Instead of showing error immediately, try to find endpoint
+        apiBaseUrl = await findWorkingApiEndpoint();
+        
+        // If still no endpoint, then show error
+        if (!apiBaseUrl) {
+          addAssistantMessage("I'm having trouble connecting to my AI brain. The server might not be running or is not accessible.");
+          return;
+        }
+      }
+      
+      // Show we're processing
+      isProcessing = true;
+      showTypingIndicator();
+      
+      try {
+        const chatEndpoint = `${apiBaseUrl}/api/chat`;
+        debugLog(`Sending message to ${chatEndpoint}`);
+        
+        // Make API request with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        const response = await fetch(chatEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: userMessage,
+            history: conversationHistory.slice(0, -1) // Don't include current message
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        removeTypingIndicator();
+        
+        // Handle the response
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response) {
+            debugLog(`Received response (${data.response.length} chars)`);
+            addAssistantMessage(data.response);
+          } else {
+            errorLog('Response OK but no response text');
+            addAssistantMessage("I received an empty response from the server. Please try again.");
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          errorLog(`Error response from server: ${response.status} ${JSON.stringify(errorData)}`);
+          
+          if (errorData && errorData.response) {
+            addAssistantMessage(errorData.response);
+          } else {
+            addAssistantMessage(`I'm sorry, I couldn't process your request (Error ${response.status}). Please try again or check the server logs.`);
+          }
+        }
+      } catch (error) {
+        errorLog(`Error sending message: ${error.message}`);
+        removeTypingIndicator();
+        
+        if (error.name === 'AbortError') {
+          addAssistantMessage("Sorry, the request took too long and timed out. The server might be overloaded or the OpenAI API might be slow.");
+        } else {
+          addAssistantMessage(`Sorry, I couldn't connect to the server: ${error.message}. Please check your connection and try again.`);
+        }
+      } finally {
+        isProcessing = false;
+      }
+    }
+    
+    // Set up event listeners
+    sendButton.addEventListener('click', function(e) {
+      e.stopPropagation(); // Prevent the click from triggering the container click
+      sendMessage();
+    });
+    
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    // Initialize the chat
+    async function initChat() {
+      initializingChat = true;
+      
+      // First show the welcome message immediately
+      showWelcomeMessage();
+      
+      // Start API endpoint discovery immediately in the background
+      findWorkingApiEndpoint().then(url => {
+        apiBaseUrl = url;
+        
+        // Once we have a URL, check connection status in the background
+        checkConnection().then(isConnected => {
+          if (!isConnected) {
+            debugLog('Not connected to OpenAI, but will continue with local responses');
+          }
+          
+          // Mark initialization as complete
+          chatInitialized = true;
+          initializingChat = false;
+        });
+      });
+    }
+    
+    // Initialize immediately if there's a cached URL
+    if (apiBaseUrl) {
+      debugLog('Using cached API URL, initializing immediately');
+      initChat();
+      chatInitialized = true;
+    }
+    
+    // Otherwise wait for user to open chat
+    
+    // Add these new functions for inventory management
+    async function updateInventory(action, amount) {
+      if (!apiBaseUrl) {
+        apiBaseUrl = await findWorkingApiEndpoint();
+        if (!apiBaseUrl) {
+          throw new Error("Cannot connect to server");
+        }
+      }
+      
+      const endpoint = `${apiBaseUrl}/api/update-inventory`;
+      
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action,
+            amount
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.newCount;
+      } catch (error) {
+        errorLog(`Inventory update error: ${error.message}`);
+        throw error;
+      }
+    }
+    
+    async function checkInventory() {
+      if (!apiBaseUrl) {
+        apiBaseUrl = await findWorkingApiEndpoint();
+        if (!apiBaseUrl) {
+          throw new Error("Cannot connect to server");
+        }
+      }
+      
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/inventory`);
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        errorLog(`Inventory check error: ${error.message}`);
+        throw error;
+      }
+    }
+
+    // Add this new function for checking recent orders
+    async function checkRecentOrders(password) {
+      if (!apiBaseUrl) {
+        apiBaseUrl = await findWorkingApiEndpoint();
+        if (!apiBaseUrl) {
+          throw new Error("Cannot connect to server");
+        }
+      }
+      
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/recent-orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        errorLog(`Recent orders check error: ${error.message}`);
+        throw error;
+      }
+    }
+  });
+</script> 
